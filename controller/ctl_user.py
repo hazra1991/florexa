@@ -1,6 +1,7 @@
 from passlib.hash import pbkdf2_sha256
 from lib.token import generate_jwt
-import pymongo
+from lib.monogomodel import Errors
+from model.user_model import UserSchema
 
 class NoUserFound(Exception):
     pass
