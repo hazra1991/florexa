@@ -1,6 +1,6 @@
 from passlib.hash import pbkdf2_sha256
 from lib.token import generate_jwt
-from lib.monogomodel import Errors
+from lib.mongomodel import Errors
 from model.user_model import UserSchema
 
 class NoUserFound(Exception):
@@ -10,12 +10,12 @@ class InvalidPass(Exception):
     pass
 
 class User:
-    client =  pymongo.MongoClient()
+    # client =  pymongo.MongoClient()
     @classmethod
     def verify_and_get_Token(cls,email_id,password):
-        db = cls.client.florexa
-        collection = db.user_info
-        u_info =  collection.find_one({"email_id":email_id})
+        UserSchema.connect()
+        userdocObj = UserSchema()
+        u_info =  userdocObj.florexa.user_info.findone({"email_id":email_id})
         if u_info is not None:
             u_info['_id'] = str(u_info["_id"])
             if pbkdf2_sha256.verify(password,u_info["password"]):
@@ -28,14 +28,18 @@ class User:
 
     @classmethod
     def register_user(cls,user_data):
+        UserSchema.connect()
         try:
-            db = cls.client.florexa
-            db.user_info.create_index([("email_id",pymongo.ASCENDING)],unique=True)
             user_data["password"] = pbkdf2_sha256.hash(user_data["password"])
-            db.user_info.insert_one(user_data)
+            userdocObj = UserSchema(user_data)
+            print(userdocObj)
+            temp = userdocObj.florexa.user_info.insert()
+            print(" MA HERERERE")
             return True
-        except pymongo.errors.DuplicateKeyError:
-            return False
+        except Errors.DuplicateKeyErr:
+            return (409,"Email id already registered,Please login")
+        except Errors.SchemaError:
+            return (409,"Schema validation failed.Please check the data or re-define Schema")
 
     # @classmethod
     # def get_user_data(cls):

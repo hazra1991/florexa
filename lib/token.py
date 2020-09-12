@@ -22,7 +22,7 @@ def verify_jwt(fun):
             else:
                 abort(403)
         except jwt.exceptions.ExpiredSignatureError:
-            abort(400)
-        except jwt.exceptions.DecodeError:
             abort(403)
+        except jwt.exceptions.DecodeError:
+            abort(400)
     return wrapper

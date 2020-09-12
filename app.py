@@ -24,7 +24,7 @@ def not_found(error):
 
 @app.errorhandler(403)
 def forbidden_page(error):
-    return ({"code":403,"error":"permission denied.Token needed or Invalid token","message":str(error)},403)
+    return ({"code":403,"error":"permission denied.Resource forbidden or token expired ","message":str(error)},403)
 
 @app.errorhandler(500)
 def server_error(error):
@@ -32,7 +32,15 @@ def server_error(error):
 
 @app.errorhandler(400)
 def token_expired(error):
-    return ({"code":400,"error":"token expired","redirect_url":url_for("user.login")},400)
+    return ({"code":400,"error":"Bad Request/ Data format incorrect / Invalid Token ","redirect_url":url_for("user.login")},400)
+
+@app.errorhandler(422)
+def Invalid_data(error):
+    return ({"code":422,"error":"Invalid or Unprocessable data"},422)
+
+@app.errorhandler(401)
+def unauthorized(error):
+    return ({"code":401,"status":"failed","error":"Authorization failed,password incorrect","message":str(error)},401)
 
 if __name__ == "__main__":
     #TODO sett the env variables including the secrect_key,and other config params 

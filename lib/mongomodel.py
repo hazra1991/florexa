@@ -1,3 +1,5 @@
+# TODO :- class jsonSchemaModel() : -Implementations pending .refer to test.mongomodel.py file for info
+
 import pymongo
 
 class Errors:
@@ -12,6 +14,11 @@ class PrimaryKey:
     pass
 
 class Optional:
+    pass
+
+class Date:
+    # TODO 
+    """ need to create a custome date datatype """
     pass
 
 ##################################
@@ -33,7 +40,7 @@ class DocumentModel(dict):
         exampleschema.connect()     # connect to collection 
         doc = excampleschema({"documents":"detalis"})
         doc.dbname.collectionname.insert() or doc.dbname.collectionname.findone()
-        
+
         *******************
     ##################
     Implemented methods:
@@ -99,9 +106,10 @@ class DocumentModel(dict):
         # print(addtodoc)
         # print(self)
         self.update(*addtodoc)
-        # print(self)
+        print(self)
         if self.__connection__ == True:
             if self.__schema__ is not None:
+                print("validating")
                 self.__verifySchema()
             try:
                 collname = ".".join(self.__collname)
@@ -152,16 +160,17 @@ class DocumentModel(dict):
         opt_count = 0
         for i in self.__schema__.items():
             # print(self.get(i[0]))
-            # print(i)
+            print(i)
             if self.get(i[0]) is not None:
                 # print(tuple(i[1]))
                 if isinstance(self.get(i[0]),tuple(i[1])):
                     if PrimaryKey in tuple(i[1]):
                         self.__createindex(i[0])
-                        pass
-                    # print(i , " verified")
+                    print(i , " verified")
                 else:
+                    print(i)
                     raise Errors.SchemaError
+
             elif Optional in tuple(i[1]):
                 opt_count +=1
             elif None in tuple(i[1]):
@@ -169,7 +178,8 @@ class DocumentModel(dict):
             else:
                 raise Errors.SchemaError
         if len(self) != len(self.__schema__) - opt_count:
-            raise Errors.SchemaError ("Schema didnot mathch")
+            # print("hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
+            raise Errors.SchemaError
 
     def __createindex(self,index_name):
         collection =  ".".join(self.__collname)

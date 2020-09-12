@@ -211,6 +211,7 @@ class jsonSchemaModel():
     """Need to Implement another way of validating based onthe below json scema 
     and this link:-https://stackoverflow.com/questions/61074297/how-to-create-schema-in-mongodb-using-python
     """
+# https://stackoverflow.com/questions/61074297/how-to-create-schema-in-mongodb-using-python
     pass
 
 # from pymongo import MongoClient

@@ -21,7 +21,7 @@ def login():
         return make_response({"code":404,"status":"failed","error":"user not found",
                 "redirect_url":url_for('user.signup')},404)
     except InvalidPass:
-        return make_response({"code":401,"status":"failed","error":"authorization failed"},401)
+        abort(401)
         
 
 @user.route("/signup",methods=["GET","POST"])
@@ -30,29 +30,27 @@ def signup():
         print("entered")
         user_data =  request.get_json()
         if user_data is not None:
-            if User.register_user(user_data):
+            dbresp = User.register_user(user_data)
+            if dbresp is True:
                 return make_response({"code":200,"status":"success","redirect_url":url_for('user.login')})
             else:
-                return make_response({"code":409,"status":"Failed","error":"user exists",
-                                    "redirect_url":url_for('user.login')},409)
+                return make_response({"code":dbresp[0],"status":"Failed","error":dbresp[1],
+                                    "redirect_url":url_for('user.login')},dbresp[0])
+        else:
+            abort(422)
 
-    elif request.method == "GET":
-        #TODO the defined module scema can be put in future  
+    elif request.method == "GET": 
         response =  make_response({
-            "Http_method":"POST",
-            "email_id":"example@example.com",
+            "email_id":"<string>",
             "first_name":"<string>",
             "last_name":"<string>",
             "password":"<string",
             "phone":"<int>",
             "location":"<string>",
-            "verifyed":False,
-            "verified_on":"<date/Null>",
-            "DOB":{
-                "year":"<int>",
-                "month":"<int>",
-                "date": "<int>"
-            }})
+            "verifyed":"bool",
+            "verified_on":"<string/null>",
+            "DOB":"<string>"
+            })
         response.headers["Content-Type"] = "application/json"
         return response
 
@@ -74,4 +72,6 @@ def logout():
 def forgotpass():
     pass
 
-# # @user.route("/verify/<token>")
+# @user.route("/verify/<str:token>")
+# def userverification():
+#     pass
