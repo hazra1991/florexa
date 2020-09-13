@@ -31,7 +31,7 @@ class Email(CustomeDataType):
         if re.search(regex,value):
             return True
         else:
-            raise TypeError("{} is noe a valid Email field".format(value))
+            raise TypeError("{} is not a valid Email field".format(value))
     
 
 class FiledType:
@@ -71,7 +71,7 @@ class FiledType:
             return True
 
         else:
-            raise TypeError("datatype for \"{}\" didnot match".format(value))
+            raise TypeError("datatype for {} didnot match".format(value))
 
     def isoptional(self):
         print(self.__optional)
@@ -183,8 +183,7 @@ class DocumentModel(dict):
                 return data
             except pymongo.errors.DuplicateKeyError as e :
                 self.__resetcounters()
-                print(e)
-                raise Errors.DuplicateKeyErr ("Doccument already present .Use update() instead")
+                raise Errors.DuplicateKeyErr(e)
 
         else:
             raise ConnectionError ("Mongo server not connected. user connect() befor operations")
@@ -198,7 +197,7 @@ class DocumentModel(dict):
                 self.__resetcounters()
                 return data
             else:
-                raise ValueError ("Incorrect filter object provided.should be Dict type")
+                raise ValueError("Incorrect filter object provided.should be Dict type")
         else:
             data = self.client[self.__dbname][collname].find_one(self)
             self.__resetcounters()
@@ -235,20 +234,23 @@ class DocumentModel(dict):
             # print(self.get(i[0]))
             # print(fldkey)
             if self.get(fldkey) is not None:
-                if fldvalue.validatefield(self.get(fldkey)) == True:
-                    if fldvalue.isunique() == True:
-                        self.__createindex(fldkey)
-                    print((fldkey , fldvalue) , " verified")
-                else:
-                    print((fldkey , fldvalue)," : -- failed")
-                    raise Errors.SchemaError
+                try:
+                    if fldvalue.validatefield(self.get(fldkey)) == True:
+                        if fldvalue.isunique() == True:
+                            self.__createindex(fldkey)
+                        print((fldkey , fldvalue) , " verified")
+                    else:
+                        print((fldkey , fldvalue)," : -- failed")
+                        raise Errors.SchemaError("schema error somethng went wrong")
+                except TypeError as e:
+                    raise Errors.SchemaError(e)
 
             elif fldvalue.isoptional():
                 opt_count +=1
             elif fldvalue.canbeNull():
                 continue
             else:
-                raise Errors.SchemaError
+                raise Errors.SchemaError("{} field not provided but defined".format(fldkey))
         if len(self) != len(self.__schema__) - opt_count:
             # print("hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
             raise Errors.SchemaError

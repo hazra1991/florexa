@@ -34,7 +34,7 @@ def signup():
             if dbresp is True:
                 return make_response({"code":200,"status":"success","redirect_url":url_for('user.login')})
             else:
-                return make_response({"code":dbresp[0],"status":"Failed","error":dbresp[1],
+                return make_response({"code":dbresp[0],"status":"Failed","error":dbresp[1],"message":str(dbresp[2]),
                                     "redirect_url":url_for('user.login')},dbresp[0])
         else:
             abort(422)

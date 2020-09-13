@@ -22,7 +22,7 @@ class User:
                 u_info.pop('password')
                 return (generate_jwt(u_info),u_info)
             else:
-                raise InvalidPass ("password incorrect")
+                raise InvalidPass("password incorrect")
         else:
             raise NoUserFound
 
@@ -36,10 +36,10 @@ class User:
             temp = userdocObj.florexa.user_info.insert()
             print(" MA HERERERE")
             return True
-        except Errors.DuplicateKeyErr:
-            return (409,"Email id already registered,Please login")
-        except Errors.SchemaError:
-            return (409,"Schema validation failed.Please check the data or re-define Schema")
+        except Errors.DuplicateKeyErr as e:
+            return (409,"Email id already registered,Please login",e)
+        except Errors.SchemaError as e:
+            return (409,"Schema validation failed.Please check the data or re-define Schema",e)
 
     # @classmethod
     # def get_user_data(cls):
