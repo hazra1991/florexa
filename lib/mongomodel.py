@@ -1,7 +1,8 @@
 # TODO :- class jsonSchemaModel() : -Implementations pending .refer to test.mongomodel.py file for info
 
 import pymongo
-
+from abc import ABC,abstractmethod
+import re,inspect
 class Errors:
 
     class SchemaError(Exception):
@@ -9,17 +10,78 @@ class Errors:
 
     class DuplicateKeyErr(Exception):
         pass
+    
+class CustomeDataType(ABC):
+    @abstractmethod
+    def verify(self):
+        pass
 
-class PrimaryKey:
-    pass
 
-class Optional:
-    pass
+# class Date(CustomeDataType):
+    
+#     # TODO 
+#     """ need to create a custome date datatype """
+#     def __init__(self,format=""):
+#         pass
+#     def verify
+#     pass
+class Email(CustomeDataType):
+    def verify(self,value):
+        regex = "^[0-9a-zA-Z]+[._]?\w+[@]\w+[.a-zA-Z]+$"
+        if re.search(regex,value):
+            return True
+        else:
+            raise TypeError("{} is noe a valid Email field".format(value))
+    
 
-class Date:
-    # TODO 
-    """ need to create a custome date datatype """
-    pass
+class FiledType:
+    # TODO can add more options based on database requirement
+    def __init__(self,*args,unique=False,optional=False,regex=None):
+        self.__definedtypes =[]
+        self.__unique=unique
+        self.__optional=optional
+        self.__regex = regex
+        self.__custometype = None
+        self.__canbenull=False
+
+        for i in args:
+            if inspect.isclass(i):
+                if i in (str,int,bool,float,dict,list):
+                    self.__definedtypes.append(i)
+                elif i not in (frozenset,set,tuple) and self.__custometype is None:
+                    self.__custometype = i
+                else:
+                    raise TypeError("Type \"{}\" is not compatible with tye \"{}\" ".format(i,self.__custometype))
+            elif i is None:
+                self.__canbenull = True
+            
+            else:
+                raise TypeError("Unidentified datatype \"{}\" in schema".format(i))
+        
+    
+    def validatefield(self,value):
+        if self.__custometype is not None:
+            return self.__custometype().verify(value)
+
+        elif isinstance(value,tuple(self.__definedtypes)):
+            if self.__regex is not None:
+                if re.search(self.__regex,value) is not True:
+                    raise TypeError("{} regex dinot match")
+            
+            return True
+
+        else:
+            raise TypeError("datatype for \"{}\" didnot match".format(value))
+
+    def isoptional(self):
+        print(self.__optional)
+        return self.__optional
+
+    def canbeNull(self):
+        return self.__canbenull
+    
+    def isunique(self):
+        return self.__unique
 
 ##################################
 # model library wrapping pymongo #
@@ -30,12 +92,14 @@ class DocumentModel(dict):
         It gives a doccument styte verification
         *******************
     Usesage/Example:- 
+
         exampleschema(Model):
             __schema__ = {
-                "firstname" : [str,PrimaryKkey]  # Field parameter should be a list
-                "middlename"  : [str,Optinal]
-                "lastname" : [str]
-                "age"  : [int]
+                "email_id":DocumentModel.fieldtype(Email,str,unique=True),
+                "first_name":DocumentModel.fieldtype(str),
+                "middle_name":DocumentModel.fieldtype(str,optional=True),
+                "last_name":DocumentModel.fieldtype(str),
+                "age":DocumentModel.fieldtype(int)
             }
         exampleschema.connect()     # connect to collection 
         doc = excampleschema({"documents":"detalis"})
@@ -151,29 +215,37 @@ class DocumentModel(dict):
     def updateDoc(self):
         pass
     
+    @staticmethod
+    def fieldtype(*args,unique=False,optional=False,regex=None):
+        if isinstance(unique,bool) and isinstance(optional,bool):
+            return FiledType(*args,unique=unique,optional=optional,regex=regex)
+        else:
+            raise TypeError("keyword values should be of boolean type")
+        
+        
+
     def __resetcounters(self):
         self.__counter *= 0
         self.__dbname *= 0
         self.__collname *= 0
 
-    def __verifySchema(self,strictcheck=False):
+    def __verifySchema(self):
         opt_count = 0
-        for i in self.__schema__.items():
+        for fldkey, fldvalue in self.__schema__.items():
             # print(self.get(i[0]))
-            print(i)
-            if self.get(i[0]) is not None:
-                # print(tuple(i[1]))
-                if isinstance(self.get(i[0]),tuple(i[1])):
-                    if PrimaryKey in tuple(i[1]):
-                        self.__createindex(i[0])
-                    print(i , " verified")
+            # print(fldkey)
+            if self.get(fldkey) is not None:
+                if fldvalue.validatefield(self.get(fldkey)) == True:
+                    if fldvalue.isunique() == True:
+                        self.__createindex(fldkey)
+                    print((fldkey , fldvalue) , " verified")
                 else:
-                    print(i)
+                    print((fldkey , fldvalue)," : -- failed")
                     raise Errors.SchemaError
 
-            elif Optional in tuple(i[1]):
+            elif fldvalue.isoptional():
                 opt_count +=1
-            elif None in tuple(i[1]):
+            elif fldvalue.canbeNull():
                 continue
             else:
                 raise Errors.SchemaError

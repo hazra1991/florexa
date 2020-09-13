@@ -1,35 +1,19 @@
 # can use pymodm 0.4.3 for modeling latter
 # https://gist.github.com/fatiherikli/4350345
 
-from lib.mongomodel import DocumentModel ,PrimaryKey ,Optional
+from lib.mongomodel import DocumentModel ,Email
 
 class UserSchema(DocumentModel):
     
     __schema__ = {
-        "email_id":[str,PrimaryKey],
-        "first_name":[str],
-        "middle_name":[str,Optional],
-        "last_name":[str],
-        "password":[str],
-        "phone":[int],
-        "location":[str,Optional],
-        "verifyed":[bool,Optional],
-        "verified_on":[str,None],
-        "DOB":[str]
+        "email_id":DocumentModel.fieldtype(Email,str,unique=True),
+        "first_name":DocumentModel.fieldtype(str),
+        "middle_name":DocumentModel.fieldtype(str,None,optional=True),
+        "last_name":DocumentModel.fieldtype(str),
+        "password":DocumentModel.fieldtype(str),
+        "phone":DocumentModel.fieldtype(int),
+        "location":DocumentModel.fieldtype(str,optional=True),
+        "verifyed":DocumentModel.fieldtype(bool),
+        "verified_on":DocumentModel.fieldtype(str,int,None),
+        "DOB":DocumentModel.fieldtype(str,int)
     }
-
-
-
-# document =  UserSchema({"email_id":"12",
-#         "first_name":"abhisehk",
-#         "middle_name":None,
-#         "last_name":"str",
-#         "password":"str",
-#         "phone":9999999999,
-#         "location":"str",
-#         "verifyed":False,
-#         "verified_on":"None",
-#         "DOB":"str"
-#         })
-# document.connect()
-# # document.insert()
