@@ -4,7 +4,8 @@
 from lib.mongomodel import DocumentModel ,Email
 
 class UserSchema(DocumentModel):
-    
+    __database__ ="florexa"
+    __collection__="user_info"
     __schema__ = {
         "email_id":DocumentModel.fieldtype(Email,str,unique=True),
         "first_name":DocumentModel.fieldtype(str),
@@ -17,3 +18,5 @@ class UserSchema(DocumentModel):
         "verified_on":DocumentModel.fieldtype(str,int,None),
         "DOB":DocumentModel.fieldtype(str,int)
     }
+
+# print(type(UserSchema),UserSchema.__mro__)

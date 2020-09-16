@@ -1,8 +1,9 @@
 # TODO :- class jsonSchemaModel() : -Implementations pending .refer to test.mongomodel.py file for info
 
-import pymongo
-from abc import ABC,abstractmethod
-import re,inspect
+#################
+# Error classes #
+#################
+
 class Errors:
 
     class SchemaError(Exception):
@@ -10,7 +11,16 @@ class Errors:
 
     class DuplicateKeyErr(Exception):
         pass
-    
+
+    class InvalidDB(Exception):
+        pass
+
+##################################################
+# Custome datatypes and Filed validation classes #
+##################################################
+from abc import ABC,abstractmethod
+import re
+
 class CustomeDataType(ABC):
     @abstractmethod
     def verify(self):
@@ -25,9 +35,11 @@ class CustomeDataType(ABC):
 #         pass
 #     def verify
 #     pass
+
+
 class Email(CustomeDataType):
     def verify(self,value):
-        regex = "^[0-9a-zA-Z]+[._]?\w+[@]\w+[.a-zA-Z]+$"
+        regex = "^[0-9a-zA-Z]*[.]?\w+[@]\w+[.a-zA-Z]+$"
         if re.search(regex,value):
             return True
         else:
@@ -71,10 +83,10 @@ class FiledType:
             return True
 
         else:
-            raise TypeError("datatype for {} didnot match".format(value))
+            raise TypeError(value)
 
     def isoptional(self):
-        print(self.__optional)
+        # print(self.__optional)
         return self.__optional
 
     def canbeNull(self):
@@ -83,17 +95,35 @@ class FiledType:
     def isunique(self):
         return self.__unique
 
-##################################
-# model library wrapping pymongo #
-##################################
+###############################################
+# main Model library classes wrapping pymongo #
+###############################################
+import pymongo
+import inspect
 
-class DocumentModel(dict):
+class Model(type):
+    def __new__(cls,name,base,dct):
+        # print(cls,name,base,dct)
+        if dct.get("__database__") is not None and dct.get("__collection__") is not None and dct.get("__schema__") is not None:
+            if isinstance(dct.get("__schema__"),dict) and \
+                            isinstance(dct.get("__database__"),str) and \
+                            isinstance(dct.get("__collection__"),str):
+                return super().__new__(cls,name,base,dct)
+                
+            else:
+                raise AttributeError("verify {}:- \n\t\t\t __schema__ must be dictionary,\n\t\t\t __database__ must be str \n\t\t\t __collection__ must be str".format(name))
+        else:
+            raise AttributeError(f"mandatory values for {name} :- __database__ ,__collection__, __schema__")
+
+class DocumentModel(dict,metaclass=Model):
     """ Verifyes and saves the schema model.This class needs to be inherited and the schema should be a list.
         It gives a doccument styte verification
         *******************
     Usesage/Example:- 
 
         exampleschema(Model):
+            __database__ = "DBNAME"
+            __collection__ = "colleciton_name"
             __schema__ = {
                 "email_id":DocumentModel.fieldtype(Email,str,unique=True),
                 "first_name":DocumentModel.fieldtype(str),
@@ -103,23 +133,34 @@ class DocumentModel(dict):
             }
         exampleschema.connect()     # connect to collection 
         doc = excampleschema({"documents":"detalis"})
-        doc.dbname.collectionname.insert() or doc.dbname.collectionname.findone()
+        doc.insert()
+        doc.findall() 
 
         *******************
     ##################
     Implemented methods:
     ##################
     ~params:: insert(self,*addtodoc) 
-        :- usesage::- doc.db.collection.insert() or doc.db.collection.insert({"appened":"info to the main doc and save"})
+        :- usesage::- doc.insert() or doc.insert({"appened":"info to the main doc and save"})
     
     ~params:: connect(cls,dburi="mongodb://localhost:27017/",username=None,password=None))
         :- usesage .classmethod to connect to the db .Should be called before any oporattions
     
     ~params::  findone(self,filterkey=None)
         :- usesage doc.db.collection.findone(filterkey={"email":"example@eg.com"})
+        :- returns a dictionary object or None if not present
+           we can also use the schema Document model object to navigate the returned info
+           
+           EX:
+                doc = schema(Documentmodel)
+                doc.findone({"email":"w@ww.com"})
+                doc.get("email") or doc["email"] = "new@mail.com"
+            and directly can be saved like
+                doc.insert() 
 
     ~params::  findall
-        :- usesage doc.db.collection.findone(filterkey={"email":"example@eg.com"})
+        :- usesage doc.findone(filterkey={"email":"example@eg.com"})
+        :- returns a list 
 
     ~params::  updatedoc
         :- usesage doc.db.collection.findone(filterkey={"email":"example@eg.com"})
@@ -136,77 +177,92 @@ class DocumentModel(dict):
 
     ##################
     global variables :-
-    __connection__
+    __database__
+    __collection__
     __schema__
     ##################
     """
 
-    __connection__ = False
-    __schema__ = None
+    __connection= False
+    __schema__ = dict()
+    __database__ = str()
+    __collection__ = str()
+    # __getattr__ = dict.get
+    # __setattr__ = dict.__setitem__
+    # __delattr__ = dict.__delitem__
 
-    def __init__(self,*doc,**kw):
-        super().__init__(*doc,**kw)
-        self.__counter = 0
-        self.__dbname = ""
-        self.__collname = []
+
+    # the below code will gather the db and coll info in obj.db.co.insert fassion()
+    # def __init__(self,*doc,**kw):
+    #     super().__init__(*doc,**kw)
+    #     self.__counter = 0
+    #     self.__dbname = ""
+    #     self.__collname = []
         
-    def __getattr__(self,var):
-        if self.__counter == 0:
-            self.__dbname = var
-        else:
-            self.__collname.append(var)
-        self.__counter +=1
-        return self
+    # def __getattr__(self,var):
+    #     if self.__counter == 0:
+    #         self.__dbname = var
+    #     else:
+    #         self.__collname.append(var)
+    #     self.__counter +=1
+    #     return self
 
     @classmethod
     def connect(cls,dburi="mongodb://localhost:27017/",username=None,password=None):
         try:
             cls.client =  pymongo.MongoClient(dburi)
-            cls.__connection__ = True
+            cls.__connection = True
         except Exception as e:
             raise ConnectionError (e)
         
     def insert(self,*addtodoc):
         # print(addtodoc)
-        # print(self)
         self.update(*addtodoc)
         print(self)
-        if self.__connection__ == True:
-            if self.__schema__ is not None:
-                print("validating")
-                self.__verifySchema()
+        if self.__connection == True:  
+            print("validating")
+            self.__verifySchema()
             try:
-                collname = ".".join(self.__collname)
-                print(self.__dbname, " ", collname)
-                data = self.client[self.__dbname][collname].insert_one(self)
-                self.__resetcounters()
+                print(self.__database__, ":=-", self.__collection__)
+                data = self.client[self.__database__][self.__collection__].insert_one(self)
+                print(data)
                 return data
+
             except pymongo.errors.DuplicateKeyError as e :
-                self.__resetcounters()
                 raise Errors.DuplicateKeyErr(e)
 
         else:
-            raise ConnectionError ("Mongo server not connected. user connect() befor operations")
+            raise ConnectionError ("Mongo server not connected. use connect() before operations")
 
         
     def findone(self,filterkey=None):
-        collname = ".".join(self.__collname)
         if filterkey is not None:
-            if isinstance(filterkey,dict):
-                data = self.client[self.__dbname][collname].find_one(filterkey)
-                self.__resetcounters()
-                return data
+            if isinstance(filterkey,dict):  
+                data = self.client[self.__database__][self.__collection__].find_one(filterkey)
+                print(data,self)
+                if data is not None:
+                    self.clear()
+                    self.update(data)
+                    return self
+                else:
+                    self.clear()
+                    return data
             else:
                 raise ValueError("Incorrect filter object provided.should be Dict type")
         else:
-            data = self.client[self.__dbname][collname].find_one(self)
-            self.__resetcounters()
-            return data
-            
-        
+            data = self.client[self.__database__][self.__collection__].find_one(self)
+            if data is not None:
+                self.clear()
+                self.update(data)
+                return self
+            else:
+                return data
 
-    def findall(self):
-        pass
+
+    def findall(self,*match:'optional filter dicitonary'):
+        data = self.client[self.__database__][self.__collection__].find({},*match)
+        return (x for x in data)
+
 
     def delete(self):
         pass
@@ -220,19 +276,11 @@ class DocumentModel(dict):
             return FiledType(*args,unique=unique,optional=optional,regex=regex)
         else:
             raise TypeError("keyword values should be of boolean type")
-        
-        
 
-    def __resetcounters(self):
-        self.__counter *= 0
-        self.__dbname *= 0
-        self.__collname *= 0
 
     def __verifySchema(self):
         opt_count = 0
         for fldkey, fldvalue in self.__schema__.items():
-            # print(self.get(i[0]))
-            # print(fldkey)
             if self.get(fldkey) is not None:
                 try:
                     if fldvalue.validatefield(self.get(fldkey)) == True:
@@ -243,7 +291,7 @@ class DocumentModel(dict):
                         print((fldkey , fldvalue)," : -- failed")
                         raise Errors.SchemaError("schema error somethng went wrong")
                 except TypeError as e:
-                    raise Errors.SchemaError(e)
+                    raise Errors.SchemaError("Scehma failed on entry {}".format((fldkey,e)))
 
             elif fldvalue.isoptional():
                 opt_count +=1
@@ -252,11 +300,10 @@ class DocumentModel(dict):
             else:
                 raise Errors.SchemaError("{} field not provided but defined".format(fldkey))
         if len(self) != len(self.__schema__) - opt_count:
-            # print("hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
-            raise Errors.SchemaError
+            raise Errors.SchemaError("Unidentified field present in user data")
 
     def __createindex(self,index_name):
-        collection =  ".".join(self.__collname)
-        # print(self.__dbname, " ", collection ," ", index_name )
-        # print("I am here ==========================")
-        self.client[self.__dbname][collection].create_index([(index_name,pymongo.ASCENDING)],unique=True)
+        try:
+            self.client[self.__database__][self.__collection__].create_index([(index_name,pymongo.ASCENDING)],unique=True)
+        except Exception as e:
+            raise RuntimeError("failed while creating index for {} .{}".format(index_name,e))
