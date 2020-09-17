@@ -63,12 +63,13 @@ class FiledType:
                 elif i not in (frozenset,set,tuple) and self.__custometype is None:
                     self.__custometype = i
                 else:
-                    raise TypeError("Type \"{}\" is not compatible with tye \"{}\" ".format(i,self.__custometype))
+                    raise TypeError("Type \"{}\" is not acceptable/compatible ,\"{}\" ".format(i,self.__custometype))
             elif i is None:
                 self.__canbenull = True
             
             else:
                 raise TypeError("Unidentified datatype \"{}\" in schema".format(i))
+        self.checkobj()
         
     
     def validatefield(self,value):
@@ -94,6 +95,13 @@ class FiledType:
     
     def isunique(self):
         return self.__unique
+    
+    def checkobj(self):
+        if self.__optional is True and self.__unique is True:
+            raise RuntimeError(f"{self} value cannot be unique and optional")
+        elif self.__unique is True and self.__canbenull is True:
+            raise RuntimeError(f"{self} value cannot be unique and null/None")
+
 
 ###############################################
 # main Model library classes wrapping pymongo #

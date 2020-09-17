@@ -7,7 +7,7 @@ class UserSchema(DocumentModel):
     __database__ ="florexa"
     __collection__="user_info"
     __schema__ ={
-        "email_id":DocumentModel.fieldtype(str),
+        "email_id":DocumentModel.fieldtype(Email,unique=True),
         "first_name":DocumentModel.fieldtype(str),
         "middle_name":DocumentModel.fieldtype(str,None,optional=True),
         "last_name":DocumentModel.fieldtype(str),
