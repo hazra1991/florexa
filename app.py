@@ -49,5 +49,3 @@ def unauthorized(error):
 if __name__ == "__main__":
     #TODO sett the env variables including the secrect_key,and other config params
     app.run(debug=True)
-
-    print(app.config["SERVER_NAME"])

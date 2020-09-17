@@ -83,7 +83,7 @@ class FiledType:
             return True
 
         else:
-            raise TypeError(value)
+            raise TypeError(f"type is {type(value)} defined :-{self.__definedtypes}")
 
     def isoptional(self):
         # print(self.__optional)
@@ -104,24 +104,57 @@ import inspect
 class Model(type):
     def __new__(cls,name,base,dct):
         # print(cls,name,base,dct)
-        if dct.get("__database__") is not None and dct.get("__collection__") is not None and dct.get("__schema__") is not None:
-            if isinstance(dct.get("__schema__"),dict) and \
-                            isinstance(dct.get("__database__"),str) and \
-                            isinstance(dct.get("__collection__"),str):
+        if isinstance(dct.get("__database__"),str) and len(dct.get("__database__")) != 0 \
+                and isinstance(dct.get("__collection__"),str) and len(dct.get("__collection__")) != 0:
+            if dct.get("__schema__") is None:
+                return super().__new__(cls,name,base,dct)
+
+            if isinstance(dct.get("__schema__"),dict) and len(dct.get("__schema__")) != 0:
+                for key,value in dct.get("__schema__").items():
+                    print(key,value)
+                    if isinstance(value,FiledType):
+                        pass
+                    elif isinstance(value,(dict,list)) and len(value) != 0:
+                        cls.verifydefinition(value)
+                    else:
+                        raise AttributeError(f"failed at {key} value {value} is of {type(value)} accepts <class FieldType>,non empty <dict> or <list>")                
                 return super().__new__(cls,name,base,dct)
                 
             else:
-                raise AttributeError("verify {}:- \n\t\t\t __schema__ must be dictionary,\n\t\t\t __database__ must be str \n\t\t\t __collection__ must be str".format(name))
+                raise AttributeError(f"verify {name}:- \n\t\t\t __schema__ must be a dictionary or None")
         else:
-            raise AttributeError(f"mandatory values for {name} :- __database__ ,__collection__, __schema__")
+            raise AttributeError(f"mandatory class variables for {name} :-\n__database__ <class str> ,\n__collection__ <class str>, \n__schema__ <class dict> or None")
 
+    @classmethod
+    def verifydefinition(cls,values):
+        if isinstance(values,dict):
+            for k,v in values.items():
+                if isinstance(v,dict) and len(v) != 0:
+                    cls.verifydefinition(v)
+                elif isinstance(v,list) and len(v) != 0:
+                    cls.verifydefinition(v)
+                elif isinstance(v,FiledType):
+                    pass
+                else:
+                    raise AttributeError(f"wrong datatype at {k} ,{v} ,use <class FieldType> ,cannot be empty dict() or str()")
+        if isinstance(values,list):
+            for i in values:
+                if isinstance(i,dict) and len(i) != 0:
+                    cls.verifydefinition(i)
+                elif isinstance(i,list) and len(i) != 0:
+                    cls.verifydefinition(i)
+                elif isinstance(i,FiledType):
+                    pass
+                else:
+                    raise AttributeError(f"wrong datatype at {i},use <class FieldType> ,cannot be empty dict() or str()")
+        
 class DocumentModel(dict,metaclass=Model):
     """ Verifyes and saves the schema model.This class needs to be inherited and the schema should be a list.
         It gives a doccument styte verification
         *******************
     Usesage/Example:- 
 
-        exampleschema(Model):
+        exampleschema(DocumentModel):
             __database__ = "DBNAME"
             __collection__ = "colleciton_name"
             __schema__ = {
@@ -159,22 +192,14 @@ class DocumentModel(dict,metaclass=Model):
                 doc.insert() 
 
     ~params::  findall
-        :- usesage doc.findone(filterkey={"email":"example@eg.com"})
-        :- returns a list 
+        :- usesage doc.findall(filterkey={"email":"example@eg.com"})
+        :- returns a list
 
     ~params::  updatedoc
-        :- usesage doc.db.collection.findone(filterkey={"email":"example@eg.com"})
+        :- usesage doc.updatedoc(filterkey={"email":"example@eg.com"})
 
     ~params::  deletedoc
-        :- usesage doc.db.collection.findone(filterkey={"email":"example@eg.com"})
-    
-    connect                         - conenct to the database collection.
-    insert(self,*addtodoc)          - Save the doccument
-    findone                         - find one doc from the collection 
-    findal                          - Find all doc if no specific key is provided
-    update                          - update one existing doc
-    delete                          - delete the doc provided 
-
+        :- usesage doc.deletedoc(filterkey={"email":"example@eg.com"})
     ##################
     global variables :-
     __database__
@@ -184,9 +209,9 @@ class DocumentModel(dict,metaclass=Model):
     """
 
     __connection= False
-    __schema__ = dict()
-    __database__ = str()
-    __collection__ = str()
+    __schema__ = None
+    __database__ = "test_db"
+    __collection__ = "test_collection"
     # __getattr__ = dict.get
     # __setattr__ = dict.__setitem__
     # __delattr__ = dict.__delitem__
@@ -220,8 +245,10 @@ class DocumentModel(dict,metaclass=Model):
         self.update(*addtodoc)
         print(self)
         if self.__connection == True:  
-            print("validating")
-            self.__verifySchema()
+            if self.__schema__ is not None:
+                print("validating")
+                DocumentModel.verifyschema(self.__schema__,self)
+                self.__createindex()
             try:
                 print(self.__database__, ":=-", self.__collection__)
                 data = self.client[self.__database__][self.__collection__].insert_one(self)
@@ -275,35 +302,88 @@ class DocumentModel(dict,metaclass=Model):
         if isinstance(unique,bool) and isinstance(optional,bool):
             return FiledType(*args,unique=unique,optional=optional,regex=regex)
         else:
-            raise TypeError("keyword values should be of boolean type")
+            raise TypeError("keyword unique and optional values should be of boolean type and regex is str")
 
-
-    def __verifySchema(self):
+    @staticmethod
+    def verifyschema(schema_data,data):
         opt_count = 0
-        for fldkey, fldvalue in self.__schema__.items():
-            if self.get(fldkey) is not None:
-                try:
-                    if fldvalue.validatefield(self.get(fldkey)) == True:
-                        if fldvalue.isunique() == True:
-                            self.__createindex(fldkey)
-                        print((fldkey , fldvalue) , " verified")
+        for skey,svalue in schema_data.items():
+            # print(skey,svalue)
+            if data.get(skey) is not None:
+                if isinstance(svalue,dict):
+                    if isinstance(data.get(skey),dict):
+                        print("entered dict")
+                        DocumentModel.verifyschema(svalue,data.get(skey))
                     else:
-                        print((fldkey , fldvalue)," : -- failed")
-                        raise Errors.SchemaError("schema error somethng went wrong")
-                except TypeError as e:
-                    raise Errors.SchemaError("Scehma failed on entry {}".format((fldkey,e)))
+                        raise Errors.SchemaError(f"Schema at {skey} defined as {type(svalue)} but provided {type(data.get(skey))}")
 
-            elif fldvalue.isoptional():
+                elif isinstance(svalue,list):
+                    DocumentModel.__listverify(svalue,data.get(skey),skey)
+                else:
+        
+                    print(f"validating schema for {skey} and type {svalue} with data {data.get(skey)}")
+                    try:
+                        if svalue.validatefield(data.get(skey)) == True:
+                            if svalue.isunique() == True:
+                                # self.__createindex(fldkey)
+                                pass
+                            print((skey , svalue) , " verified")
+                        else:
+                            print((skey , svalue)," : -- failed")
+                            raise Errors.SchemaError("schema error somethng went wrong")
+                    except TypeError as e:
+                        raise Errors.SchemaError("Scehma failed on entry {}".format((skey,e)))
+                            #validation
+            elif isinstance(svalue,dict) or isinstance(svalue,list):
+                raise Errors.SchemaError(f"{skey} cannot have empty values")
+            elif svalue.isoptional():
                 opt_count +=1
-            elif fldvalue.canbeNull():
+            elif svalue.canbeNull():
                 continue
             else:
-                raise Errors.SchemaError("{} field not provided but defined".format(fldkey))
-        if len(self) != len(self.__schema__) - opt_count:
-            raise Errors.SchemaError("Unidentified field present in user data")
+                print(data.get(skey) ,skey,data,"  this is ")
+                raise Errors.SchemaError("{} field not provided but defined".format(skey))
 
-    def __createindex(self,index_name):
-        try:
-            self.client[self.__database__][self.__collection__].create_index([(index_name,pymongo.ASCENDING)],unique=True)
-        except Exception as e:
-            raise RuntimeError("failed while creating index for {} .{}".format(index_name,e))
+        if len(data) != len(schema_data) - opt_count:
+            raise Errors.SchemaError("Unidentified field present in user data")
+    
+    @staticmethod
+    def __listverify(lstvalue,pdata,key):
+        if isinstance(pdata,list):
+            if len(lstvalue) != len(pdata):
+                raise Errors.SchemaError(f"provided data for \"{key}\" = {pdata} index missmatch [+]list cannot have optional values [+] use fieldtype(list) for emty list")
+            for i in range(len(lstvalue)):
+                if isinstance(lstvalue[i],dict):
+                    if isinstance(pdata[i],dict):
+                        DocumentModel.verifyschema(lstvalue[i],pdata[i])
+                        print("cameback from dict")
+                    else:
+                        raise Errors.SchemaError(f"Failed on {key} data defined {lstvalue[i]} given {pdata[i]} ")
+                elif isinstance(lstvalue[i],list):
+                    if isinstance(pdata[i],list):
+                        DocumentModel.__listverify(lstvalue[i],pdata[i],key)
+                    else:
+                        raise Errors.SchemaError(f"Failed on {key} data defined {lstvalue[i]} given {pdata[i]} ")
+                else :
+
+                    print(f"schema for list {key} is {lstvalue[i]} and data value is {pdata[i]}")
+                    try:
+                        if lstvalue[i].validatefield(pdata[i]) == True:
+                            pass
+                        else:
+                            print((key , lstvalue[i])," : -- failed")
+                            raise Errors.SchemaError("schema error somethng went wrong")
+                    except TypeError as e:
+                        raise Errors.SchemaError("Scehma failed on entry {}".format((key,e)))
+                    
+        else:
+            raise Errors.SchemaError(f"Scehma failed on entry {key} defined {type(lstvalue)} but given{type(pdata)}")
+
+    def __createindex(self):
+        for ikey,ivalue in self.__schema__.items():
+            if isinstance(ivalue,FiledType) and ivalue.isunique() == True:
+                try:
+                    print("creating primary index for {}".format(ikey))
+                    self.client[self.__database__][self.__collection__].create_index([(ikey,pymongo.ASCENDING)],unique=True)
+                except Exception as e:
+                    raise RuntimeError("failed while creating index for {} .{}".format(ikey,e))

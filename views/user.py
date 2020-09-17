@@ -68,7 +68,7 @@ def resendverification():
 def userverification(mailid):
     print(mailid)
     print(request.args.get("token"))
-    if verify_and_geturldata_else_False(request.args["token"]):
+    if verify_and_geturldata_else_False(request.args["token"],exp_timedelta=30):
         return f"{mailid} verified"
     else:
         return "token expired"

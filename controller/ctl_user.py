@@ -42,12 +42,12 @@ class User:
             print(" MA HERERERE")
             return True
         except Errors.DuplicateKeyErr as e:
-            return (409,"Email id already registered",e)
+            return (409,"User already registered",e)
         except Errors.SchemaError as e:
             return (409,"Schema validation failed.Please check the data or re-define Schema",e)
         
-    @classmethod
-    def send_verification_mail(cls,baseurl,mail_id):
+    @staticmethod
+    def send_verification_mail(baseurl,mail_id):
         # TODO meed to implement threading
         urltoken = generate_url_token(mail_id)
         subject="Florexa mail Verification"
