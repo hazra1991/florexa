@@ -21,58 +21,40 @@ class Errors:
 from abc import ABC,abstractmethod
 import re
 
-class CustomeDataType(ABC):
+class baseType(ABC):
     @abstractmethod
-    def verify(self):
+    def validatefield(self,value) -> bool:
         pass
-
-
-# class Date(CustomeDataType):
     
-#     # TODO 
-#     """ need to create a custome date datatype """
-#     def __init__(self,format=""):
-#         pass
-#     def verify
-#     pass
-
-
-class Email(CustomeDataType):
-    def verify(self,value):
-        regex = "^[0-9a-zA-Z]*[.]?\w+[@]\w+[.a-zA-Z]+$"
-        if re.search(regex,value):
-            return True
-        else:
-            raise TypeError("{} is not a valid Email field".format(value))
-    
-
-class FiledType:
+class FieldType(baseType):
     # TODO can add more options based on database requirement
-    def __init__(self,*args,unique=False,optional=False,regex=None):
+    def __init__(self,*args,**kwargs):
+        print(kwargs)
         self.__definedtypes =[]
-        self.__unique=unique
-        self.__optional=optional
-        self.__regex = regex
+        self.__unique=kwargs.pop("unique",False)
+        self.__optional=kwargs.pop("optional",False)
+        self.__regex = kwargs.pop("regex")
         self.__custometype = None
-        self.__canbenull=False
-
+        self.__canbenull=kwargs.pop("canbenull",False)
+        
+        if len(kwargs) !=0:
+            raise AttributeError(f"unidentified values given {kwargs} for {self}") 
+        
         for i in args:
             if inspect.isclass(i):
                 if i in (str,int,bool,float,dict,list):
                     self.__definedtypes.append(i)
                 elif i not in (frozenset,set,tuple) and self.__custometype is None:
-                    self.__custometype = i
+                    self.__custometype = ielf.__definedtype
                 else:
                     raise TypeError("Type \"{}\" is not acceptable/compatible ,\"{}\" ".format(i,self.__custometype))
-            elif i is None:
-                self.__canbenull = True
             
             else:
                 raise TypeError("Unidentified datatype \"{}\" in schema".format(i))
         self.checkobj()
         
     
-    def validatefield(self,value):
+    def validatefield(self,value)-> bool :
         if self.__custometype is not None:
             return self.__custometype().verify(value)
 
@@ -95,14 +77,98 @@ class FiledType:
     
     def isunique(self):
         return self.__unique
+
+    def getregex(self):
+        return self.__regex
     
     def checkobj(self):
+        if isinstance(self.__unique,bool) != True or isinstance(self.__optional,bool) != True\
+                                   or isinstance(self.__canbenull,bool) != True:
+            raise RuntimeError("wrong format data given")
+        elif isinstance(self.__regex,str):
+            pass
+        elif self.__regex is not None:
+            raise RuntimeError("Wrong data regex")
         if self.__optional is True and self.__unique is True:
             raise RuntimeError(f"{self} value cannot be unique and optional")
         elif self.__unique is True and self.__canbenull is True:
             raise RuntimeError(f"{self} value cannot be unique and null/None")
 
+class StringField(FieldType):
+    def __init__(self,**kw):
+        self.minimum = kw.pop("minimum",None)
+        self.maximum = kw.pop("maximum",None)
+        if self.minimum is not None and self.maximum is not None:
+            if isinstance(self.minimum,int) is not True and isinstance(self.minimum,int) is not True:
+                raise ValueError("min and max should be number")
+            if self.minimum >= self.maximum or self.minimum == 0 or self.maximum == 0:
+                raise ValueError("min and max values incorrect")
+        super().__init__(**kw)
+    
+    def validatefield(self,value):
+        if self.minimum is None and self.maximum is None:
+            self.__checkdata(value)
+            return True
+        else:
+            self.__checkdata(value)
+            if self.minimum is not None and len(value) < self.minimum:
+                raise TypeError(f"string {value} is under length")
+            if self.maximum is not None and len(value) > self.maximum:
+                raise TypeError(f"string {value} is over length")
+            
+            return True
 
+    def __checkdata(self,val):
+        
+        if isinstance(val,str):  
+            if self.getregex() is not None:
+                if re.search(self.getregex(),val):
+                    pass
+                else:
+                    raise TypeError(f"{val} donot mathch the regex field")
+        elif self.canbeNull() is True:
+            pass
+        else:
+            raise TypeError("value cannot be null/None")
+
+class Email(FieldType):
+    def validatefield(self,value):
+        print("here")
+        regex = self.getregex() or "^[0-9a-zA-Z]*[.]?\w+[@]\w+[.a-zA-Z]+$"
+        print(regex)
+        if re.search(regex,value):
+            return True
+        else:
+            raise TypeError("{} is not a valid Email field".format(value))
+
+class Date(FieldType):
+    def __init__(self,**kw):
+        pass
+
+class Number(FieldType):
+    def __inti__(self,**kw):
+        self.minimum = kw.pop("minimum",None)
+        self.maximum = kw.pop("maximum",None)
+        if self.minimum is not None and self.maximum is not None:
+            if isinstance(self.minimum,int) != True and isinstance(self.maximum,int) != True:
+                raise ValueError("Invalid number")
+            if self.minimum > self.maximum:
+                raise ValueError(f"{self.minimum} cannot be greater than {self.maximum}")
+        super().__init__(**kw)
+    
+    def validatefield(self,value):
+        if isinstance(value,int) is not True:
+            raise TypeError(f"{value} is not a number")
+        if self.minimum is not None and self.maximum is not None:
+            if value < self.minimum:
+                raise ValueError(f"{value} not meeting the defined min")
+            if value > self.maximum:
+                raise ValueError(f"{value} exceding the defined max")
+        return True
+
+
+
+        
 ###############################################
 # main Model library classes wrapping pymongo #
 ###############################################
@@ -120,7 +186,7 @@ class Model(type):
             if isinstance(dct.get("__schema__"),dict) and len(dct.get("__schema__")) != 0:
                 for key,value in dct.get("__schema__").items():
                     print(key,value)
-                    if isinstance(value,FiledType):
+                    if isinstance(value,FieldType):
                         pass
                     elif isinstance(value,(dict,list)) and len(value) != 0:
                         cls.verifydefinition(value)
@@ -141,7 +207,7 @@ class Model(type):
                     cls.verifydefinition(v)
                 elif isinstance(v,list) and len(v) != 0:
                     cls.verifydefinition(v)
-                elif isinstance(v,FiledType):
+                elif isinstance(v,FieldType):
                     pass
                 else:
                     raise AttributeError(f"wrong datatype at {k} ,{v} ,use <class FieldType> ,cannot be empty dict() or str()")
@@ -151,7 +217,7 @@ class Model(type):
                     cls.verifydefinition(i)
                 elif isinstance(i,list) and len(i) != 0:
                     cls.verifydefinition(i)
-                elif isinstance(i,FiledType):
+                elif isinstance(i,FieldType):
                     pass
                 else:
                     raise AttributeError(f"wrong datatype at {i},use <class FieldType> ,cannot be empty dict() or str()")
@@ -305,10 +371,13 @@ class DocumentModel(dict,metaclass=Model):
     def updateDoc(self):
         pass
     
+    def count(self):
+        pass
+    
     @staticmethod
-    def fieldtype(*args,unique=False,optional=False,regex=None):
+    def fieldtype(*args,unique=False,canbenull=False,optional=False,regex=None):
         if isinstance(unique,bool) and isinstance(optional,bool):
-            return FiledType(*args,unique=unique,optional=optional,regex=regex)
+            return FieldType(*args,unique=unique,canbenull=canbenull,optional=optional,regex=regex)
         else:
             raise TypeError("keyword unique and optional values should be of boolean type and regex is str")
 
@@ -353,7 +422,7 @@ class DocumentModel(dict,metaclass=Model):
                 raise Errors.SchemaError("{} field not provided but defined".format(skey))
 
         if len(data) != len(schema_data) - opt_count:
-            raise Errors.SchemaError("Unidentified field present in user data")
+            raise Errors.SchemaError(f"Schema params didnot match incoming data,[+] defined schema {schema_data}")
     
     @staticmethod
     def __listverify(lstvalue,pdata,key):
@@ -389,7 +458,7 @@ class DocumentModel(dict,metaclass=Model):
 
     def __createindex(self):
         for ikey,ivalue in self.__schema__.items():
-            if isinstance(ivalue,FiledType) and ivalue.isunique() == True:
+            if isinstance(ivalue,FieldType) and ivalue.isunique() == True:
                 try:
                     print("creating primary index for {}".format(ikey))
                     self.client[self.__database__][self.__collection__].create_index([(ikey,pymongo.ASCENDING)],unique=True)

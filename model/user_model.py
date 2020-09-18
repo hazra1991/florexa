@@ -1,21 +1,21 @@
 # can use pymodm 0.4.3 for modeling latter
 # https://gist.github.com/fatiherikli/4350345
 
-from lib.mongomodel import DocumentModel ,Email
+from lib.mongomodel import DocumentModel ,Email ,StringField
 
 class UserSchema(DocumentModel):
     __database__ ="florexa"
-    __collection__="user_info"
+    __collection__="new_coll"
     __schema__ ={
-        "email_id":DocumentModel.fieldtype(Email,unique=True),
+        "email_id":Email(unique=True),
         "first_name":DocumentModel.fieldtype(str),
-        "middle_name":DocumentModel.fieldtype(str,None,optional=True),
+        "middle_name":DocumentModel.fieldtype(str,canbenull=True,optional=True),
         "last_name":DocumentModel.fieldtype(str),
         "password":DocumentModel.fieldtype(str),
         "phone":DocumentModel.fieldtype(int),
         "location":DocumentModel.fieldtype(str,optional=True),
         "verified":DocumentModel.fieldtype(bool),
-        "verified_on":DocumentModel.fieldtype(None),
+        "verified_on":DocumentModel.fieldtype(canbenull=True),
         "DOB":{
             "year":DocumentModel.fieldtype(int),
             "month":DocumentModel.fieldtype(int),
