@@ -13,7 +13,8 @@ def generate_jwt(u_info):
         temp =  dict(u_info)
         temp["exp"] = datetime.utcnow() + timedelta(seconds=120)
         return jwt.encode(temp,SECRET,algorithm='HS256')
-    except Excepttion as e:
+    except Exception as e:
+        print("idisusbdsjdbakjdbakjdbajsdbajsdbakkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
         print(e)
 
 

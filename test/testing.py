@@ -6,8 +6,9 @@ var2 = 2
 class _privet:
     def __init__(self):
         print("private class")
-    
-    
+
+import functools
+print("testing ")
 class Errors:
 
     class SchemaError(Exception):

@@ -34,7 +34,7 @@ class User:
     def register_user(cls,user_data):
         UserSchema.connect()
         try:
-            user_data["password"] = pbkdf2_sha256.hash(user_data["password"])
+            # user_data["password"] = pbkdf2_sha256.hash(user_data["password"])
             document = UserSchema(user_data)
             print(document)
             # temp = userdocObj.florexa.user_info.insert()
