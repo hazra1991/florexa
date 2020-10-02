@@ -1,7 +1,7 @@
 from passlib.hash import pbkdf2_sha256
 from lib.tokenlib import generate_jwt , generate_url_token
 from lib.mongomodel import Errors
-from model.user_model import UserSchema
+from model.florexa_model import UserSchema
 from lib.mailserver import send_mail
 
 class NoUserFound(Exception):

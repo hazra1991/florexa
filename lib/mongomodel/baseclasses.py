@@ -25,7 +25,6 @@ def verifydefinition(values,classname=None):
 
 class baseType(ABC):
     def __init__(self,*args,**kwargs):
-        print(kwargs)
         self.__definedtypes =[]
         self.__unique=kwargs.pop("unique",False)
         self.__optional=kwargs.pop("optional",False)

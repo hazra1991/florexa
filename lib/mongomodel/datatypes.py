@@ -79,16 +79,17 @@ class Email(baseType):
         else:
             raise TypeError("{} is not a valid Email field".format(value))
 
-class Date(baseType):
-    import time
+class DateTime(baseType):
+    from datetime import datetime
     def __init__(self,**kw):
         self.default = kw.pop("default",None)
         self.unixtime = kw.pop("unixtime",False)
+        self.format = kw.pop("_format","%d/%m/%Y")
         
+        if isinstance(self.format,str) is not True:
+            raise ValueError(f"{self.format} should be a string")
         if isinstance(self.unixtime,(int,float)) != True:
             raise RuntimeError("unixtime should be ")
-
-
 
         if self.default == None or callable(self.default): 
             pass
@@ -97,28 +98,26 @@ class Date(baseType):
         super().__init__(**kw)
     
     def validatefield(self,value):
+        # TODO need to implememt unix timestamp
+        if isinstance(value,str):
+            datetime.strptime(value,self.format)
+        else:
+            raise ValueError(f"{value} date object should be a string in format {self.format}")
+            
 
-        if self.unixtime is True:
-            pass
 
-    
-    
-
-
-class Number(baseType):
-    def __inti__(self,**kw):
+class NumberField(baseType):
+    def __init__(self,**kw):
         self.minimum = kw.pop("minimum",None)
         self.maximum = kw.pop("maximum",None)
         self.default = kw.pop("default",None)
 
-        if self.default != None and isinstance(self.default,int): 
-            pass
-        else:
+        if self.default != None and isinstance(self.default,int) is not True: 
             raise RuntimeError(f"default {self.default} not a number")
 
-        if self.minimum is not None and isinstance(self.minimum,int):
+        if self.minimum is not None and isinstance(self.minimum,int) is not True:
             raise ValueError("invalid minimum value")
-        if self.maximum is not None and isinstance(slef.maximum,int):
+        if self.maximum is not None and isinstance(self.maximum,int) is not True:
             raise ValueError("Invalid maximum")
         try:
             if self.minimum > self.maximum:
@@ -136,7 +135,6 @@ class Number(baseType):
             if value > self.maximum:
                 raise ValueError(f"{value} exceding the defined max")
         return True
-
 
 class EmbeddedDocumentList(baseType):
     def __init__(self,embdoc,**kw):
@@ -163,8 +161,15 @@ class EmbeddedDocumentList(baseType):
             
         return True
 
+class Boolean(baseType):
+    def __init__(self,**kw):
+        self.default = kw.pop("default",None)
+        if self.default != None and isinstance(self.default,bool) != True:
+            raise ValueErro("default should be a bool")
+        super().__init__(**kw)
 
-
-        
-        # self.
-
+    def validatefield(self,value):
+        if isinstance(value,bool):
+            return True
+        else:
+            raise TypeError(f"{value} value is not a bool")

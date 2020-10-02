@@ -1,10 +1,14 @@
+attrs==20.2.0
 click==7.1.2
+contextlib2==0.6.0.post1
 Flask==1.1.2
 itsdangerous==1.1.0
 Jinja2==2.11.2
+jsonschema==3.2.0
 MarkupSafe==1.1.1
 passlib==1.7.2
 PyJWT==1.7.1
-pymodm==0.4.3
 pymongo==3.11.0
+pyrsistent==0.17.3
+six==1.15.0
 Werkzeug==1.0.1

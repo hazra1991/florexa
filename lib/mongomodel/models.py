@@ -106,6 +106,8 @@ class DocumentModel(dict,metaclass=Model):
 
         
     def findone(self,filterkey=None):
+        if self.__connection != True:
+            raise ConnectionError("Mongo server not conencted user connect() before operations")
         if filterkey is not None:
             if isinstance(filterkey,dict):  
                 data = self.client[self.__database__][self.__collection__].find_one(filterkey)
@@ -130,21 +132,31 @@ class DocumentModel(dict,metaclass=Model):
 
 
     def findall(self,*match:'optional filter dicitonary'):
+        if self.__connection != True:
+            raise ConnectionError("Mongo server not conencted user connect() before operations")
         data = self.client[self.__database__][self.__collection__].find({},*match)
         return (x for x in data)
 
 
     def delete(self):
+        if self.__connection != True:
+            raise ConnectionError("Mongo server not conencted user connect() before operations")
         pass
 
     def updateDoc(self):
+        if self.__connection != True:
+            raise ConnectionError("Mongo server not conencted user connect() before operations")
         pass
     
     def count(self):
+        if self.__connection != True:
+            raise ConnectionError("Mongo server not conencted user connect() before operations")
         pass
 
 
     def __createindex(self):
+        if self.__connection != True:
+            raise ConnectionError("Mongo server not conencted user connect() before operations")
         for ikey,ivalue in self.__schema__.items():
             if isinstance(ivalue,baseType) and ivalue.isunique() == True:
                 try:
@@ -159,5 +171,3 @@ class DocumentModel(dict,metaclass=Model):
             raise RuntimeError("arguments cannot be empty")
         return FieldType(*args,**k)
 
-class EmbeddedModel(metaclass=EmbeddedDocbase):
-    __schema__ = dict()

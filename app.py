@@ -1,6 +1,4 @@
 from flask import Flask ,url_for
-from views.user import user
-
 ################
 #### config ####
 ################
@@ -11,8 +9,10 @@ app = Flask(__name__)
 ####################
 #### blueprints ####
 ####################
-
+from views.user import user
+from views.booking import booking
 app.register_blueprint(user,url_prefix="/user")
+app.register_blueprint(booking,url_prefix="/booking")
 
 ########################
 #### error handlers ####
