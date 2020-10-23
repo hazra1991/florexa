@@ -126,13 +126,14 @@ class NumberField(baseType):
             pass
         super().__init__(**kw)
     
+    
     def validatefield(self,value):
         if isinstance(value,int) is not True:
             raise TypeError(f"{value} is not a number")
         if self.minimum is not None and self.maximum is not None:
-            if value < self.minimum:
+            if len(str(value)) < self.minimum:
                 raise ValueError(f"{value} not meeting the defined min")
-            if value > self.maximum:
+            if len(str(value)) > self.maximum:
                 raise ValueError(f"{value} exceding the defined max")
         return True
 

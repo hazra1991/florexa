@@ -31,17 +31,16 @@ class Appointments(DocumentModel):
     __schema__= {
         "received_on":DateTime(default=datetime.now),
         "email_id":Email(),
-        "first_name":StringField(),
-        "middle_name":StringField(canbenull=True),
-        "last_name":StringField(),
-        "phone":NumberField(minimum=10,maximum=12),
+        "name":StringField(),
+        "phone":NumberField(minimum=10,maximum=12,unique=True),
         "confirmed":Boolean(default=False),
-        "booking_date":DateTime(_format="%Y/%m/%d"),
-        "time_slot":DocumentModel.fieldtype(float),
-        "sevices":EmbeddedDocumentList({
-                                        "id":DocumentModel.fieldtype(float),
-                                        "name":StringField()
-                                    })
+        "booking_date":StringField(),
+        "time_slot":StringField(),
+        "no_of_person":NumberField(),
+        # "sevices":EmbeddedDocumentList({
+        #                                 "id":DocumentModel.fieldtype(float),
+        #                                 "name":StringField()
+        #                             })
     }
 
 class Services(DocumentModel):

@@ -6,9 +6,9 @@ class Book:
         Appointments.connect()
 
     def schedule(self):
-        doc = Appointments({self.details})
+        print("dadadsad",self.details)
+        doc = Appointments(self.details)
         doc.insert()
-        pass
     
     def checkslot(self):
         

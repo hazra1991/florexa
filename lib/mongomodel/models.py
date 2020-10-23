@@ -86,6 +86,7 @@ class DocumentModel(dict,metaclass=Model):
         # print(addtodoc)
         self.update(*addtodoc)
         print(self)
+        print(self.__connection)
         if self.__connection == True:  
             if self.__schema__ is not None:
                 print("validating")
@@ -155,6 +156,7 @@ class DocumentModel(dict,metaclass=Model):
 
 
     def __createindex(self):
+        print("creating index")
         if self.__connection != True:
             raise ConnectionError("Mongo server not conencted user connect() before operations")
         for ikey,ivalue in self.__schema__.items():
