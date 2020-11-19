@@ -9,3 +9,8 @@ mongoDB
 pymongo
 flask
 ```
+## Instalation
+
+```bash
+git clone https://github.com/hazra1991/florexa.git
+pip install -r requirements.txt
